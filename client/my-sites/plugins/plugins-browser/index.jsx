@@ -23,13 +23,20 @@ import URLSearch from 'lib/mixins/url-search';
 import infiniteScroll from 'lib/mixins/infinite-scroll';
 import JetpackManageErrorPage from 'my-sites/jetpack-manage-error-page';
 import { recordTracksEvent } from 'state/analytics/actions';
-import { canCurrentUser } from 'state/selectors';
-import { getSelectedSiteId } from 'state/ui/selectors';
 import {
-	canJetpackSiteManage,
+	canCurrentUser,
+	getSelectedOrAllSitesJetpackCanManage,
+} from 'state/selectors';
+import {
+	getSelectedSite,
+	getSelectedSiteId,
+	getSelectedSiteSlug,
+} from 'state/ui/selectors';
+import {
 	getSitePlan,
 	isJetpackSite,
-	isRequestingSites
+	isRequestingSites,
+	canJetpackSiteManage,
 } from 'state/sites/selectors';
 import NonSupportedJetpackVersionNotice from 'my-sites/plugins/not-supported-jetpack-version';
 import NoPermissionsError from 'my-sites/plugins/no-permissions-error';
@@ -55,7 +62,6 @@ const PluginsBrowser = React.createClass( {
 
 	componentDidMount() {
 		PluginsListStore.on( 'change', this.refreshLists );
-		this.props.sites.on( 'change', this.refreshLists );
 
 		if ( this.props.search && this.props.searchTitle ) {
 			this.props.recordTracksEvent( 'calypso_plugins_search_noresults_recommendations_show', {
@@ -70,7 +76,6 @@ const PluginsBrowser = React.createClass( {
 
 	componentWillUnmount() {
 		PluginsListStore.removeListener( 'change', this.refreshLists );
-		this.props.sites.removeListener( 'change', this.refreshLists );
 	},
 
 	componentWillReceiveProps( newProps ) {
@@ -149,9 +154,9 @@ const PluginsBrowser = React.createClass( {
 				plugins={ this.getPluginsFullList( category ) }
 				listName={ category }
 				title={ this.translateCategory( category ) }
-				site={ this.props.site }
+				site={ this.props.selectedSite }
 				showPlaceholders={ isFetching }
-				currentSites={ this.props.sites.getSelectedOrAllJetpackCanManage() } />;
+				currentSites={ this.props.sites } />;
 		}
 	},
 
@@ -168,9 +173,9 @@ const PluginsBrowser = React.createClass( {
 				plugins={ this.getPluginsFullList( 'search' ) }
 				listName={ searchTerm }
 				title={ searchTitle }
-				site={ this.props.site }
+				site={ this.props.siteSlug }
 				showPlaceholders={ isFetching }
-				currentSites={ this.props.sites.getSelectedOrAllJetpackCanManage() } />;
+				currentSites={ this.props.sites } />;
 		}
 		return (
 			<NoResults
@@ -189,11 +194,11 @@ const PluginsBrowser = React.createClass( {
 			plugins={ this.getPluginsShortList( category ) }
 			listName={ category }
 			title={ this.translateCategory( category ) }
-			site={ this.props.site }
+			site={ this.props.siteSlug }
 			expandedListLink={ this.getPluginsFullList( category ).length > this._SHORT_LIST_LENGTH ? listLink : false }
 			size={ this._SHORT_LIST_LENGTH }
 			showPlaceholders={ this.state.fullLists[ category ].fetching !== false }
-			currentSites={ this.props.sites.getSelectedOrAllJetpackCanManage() } />;
+			currentSites={ this.props.sites } />;
 	},
 
 	getShortListsView() {
@@ -222,7 +227,7 @@ const PluginsBrowser = React.createClass( {
 	},
 
 	getNavigationBar() {
-		const site = this.props.site ? '/' + this.props.site : '';
+		const site = this.props.siteSlug ? '/' + this.props.siteSlug : '';
 		return <SectionNav selectedText={ this.props.translate( 'Category', { context: 'Category of plugins to be filtered by' } ) }>
 			<NavTabs label="Category">
 				<NavItem
@@ -389,6 +394,7 @@ const PluginsBrowser = React.createClass( {
 export default connect(
 	state => {
 		const selectedSiteId = getSelectedSiteId( state );
+		const sites = getSelectedOrAllSitesJetpackCanManage( state );
 		return {
 			sitePlan: getSitePlan( state, selectedSiteId ),
 			isJetpackSite: isJetpackSite( state, selectedSiteId ),
@@ -396,6 +402,9 @@ export default connect(
 			isRequestingSites: isRequestingSites( state ),
 			noPermissionsError: !! selectedSiteId && ! canCurrentUser( state, selectedSiteId, 'manage_options' ),
 			selectedSiteId,
+			selectedSite: getSelectedSite( state ),
+			siteSlug: getSelectedSiteSlug( state ),
+			sites,
 		};
 	},
 	{
