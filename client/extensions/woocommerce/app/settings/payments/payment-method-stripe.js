@@ -122,38 +122,49 @@ class PaymentMethodStripe extends Component {
 		return translate( 'e.g. %(domain)s', { args: { domain } } );
 	}
 
+	areKeysAvailable = ( isLiveMode ) => {
+		const { settings } = this.props.method;
+		if ( isLiveMode ) {
+			return settings.secret_key.value.trim() && settings.publishable_key.value.trim();
+		}
+		return settings.test_secret_key.value.trim() && settings.test_publishable_key.value.trim();
+	}
+
 	render() {
 		const { method, translate } = this.props;
+		const isLiveMode = method.settings.testmode.value !== 'yes';
+		const displayAccountNotice = ! this.areKeysAvailable( isLiveMode );
 		return (
 			<Dialog
 				additionalClassNames="payments__dialog woocommerce"
 				buttons={ this.buttons }
 				isVisible>
 				<FormFieldset className="payments__method-edit-field-container">
-					<Notice showDismiss={ false } text={ translate( 'To use Stripe you need to register an account' ) }>
-						<NoticeAction href="https://dashboard.stripe.com/register">{ translate( 'Sign up' ) }</NoticeAction>
-					</Notice>
+					{ displayAccountNotice &&
+						<Notice showDismiss={ false } text={ translate( 'To use Stripe you need to register an account' ) }>
+							<NoticeAction href="https://dashboard.stripe.com/register">{ translate( 'Sign up' ) }</NoticeAction>
+						</Notice>
+					}
 					<FormLabel>{ translate( 'Payment Mode' ) }</FormLabel>
 					<SegmentedControl
 						primary
 					>
 						<ControlItem
-							selected={ method.settings.testmode.value === 'yes' }
+							selected={ ! isLiveMode }
 							onClick={ this.onToggleTestMode( 'test' ) }
 						>
 							{ translate( 'Test Mode' ) }
 						</ControlItem>
 
 						<ControlItem
-							selected={ method.settings.testmode.value === 'no' }
+							selected={ isLiveMode }
 							onClick={ this.onToggleTestMode( 'live' ) }
 						>
 							{ translate( 'Live Mode' ) }
 						</ControlItem>
 					</SegmentedControl>
 				</FormFieldset>
-				{ method.settings.testmode.value === 'yes' && this.renderKeyFields( false ) }
-				{ method.settings.testmode.value === 'no' && this.renderKeyFields( true ) }
+				{ this.renderKeyFields( isLiveMode ) }
 				<FormFieldset className="payments__method-edit-field-container">
 					<FormLegend>{ translate( 'Payment authorization' ) }</FormLegend>
 					<FormLabel>
