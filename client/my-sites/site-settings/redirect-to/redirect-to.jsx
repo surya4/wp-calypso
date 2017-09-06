@@ -26,14 +26,14 @@ const redirectNonJetpack = ( WrappedComponent, redirectUrl ) => {
 		}
 
 		componentDidMount() {
-			this.verifySiteIsJetpack();
+			this.verifySiteIsJetpackOrAtomic();
 		}
 
 		componentDidUpdate() {
-			this.verifySiteIsJetpack();
+			this.verifySiteIsJetpackOrAtomic();
 		}
 
-		verifySiteIsJetpack() {
+		verifySiteIsJetpackOrAtomic() {
 			if ( this.props.siteIsJetpack === false || this.props.siteIsAtomic ) {
 				this.redirectTo();
 			}
